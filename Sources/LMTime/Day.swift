@@ -22,30 +22,30 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     
     private let date: Date
     
-    var month: Int {
+    public var month: Int {
         return Day.calendar.component(.month, from: date)
     }
     
-    var day: Int {
+    public var day: Int {
         return Day.calendar.component(.day, from: date)
     }
     
-    var year: Int {
+    public var year: Int {
         return Day.calendar.component(.year, from: date)
     }
         
     /// Returns GTDay in user's local timezone
-    static var today: Day {
+    public static var today: Day {
         let todayDate = Date(timeIntervalSinceNow: 0)
         return todayDate.day(in: Calendar.autoupdatingCurrent.timeZone)
     }
     
     /// Returns `TimeInterval` corresponding to seconds since UTC epoch of start of day
-    var start: TimeInterval {
+    public var start: TimeInterval {
         return date.timeIntervalSince1970
     }
     
-    func start(inTimeZone timeZone: TimeZone) -> Date {
+    public func start(inTimeZone timeZone: TimeZone) -> Date {
         let components = DateComponents(year: self.year, month: self.month, day: self.day)
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -53,21 +53,21 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     }
     
     /// Day in MM/DD/YYYY format
-    var description: String {
+    public var description: String {
         return "\(month)/\(day)/\(year)"
     }
     
     /// Key used for firestore map key
-    var key: String {
+    public var key: String {
         return "\(month):\(day):\(year)"
     }
     
     /// Date in MM/DD format
-    var shortDescription: String {
+    public var shortDescription: String {
         return "\(month)/\(day)"
     }
     
-    var weekdayDateString: String {
+    public var weekdayDateString: String {
         let weekday = Day.calendar.dateComponents([.weekday], from: self.date).weekday!
         let weekdayString = Day.calendar.weekdaySymbols[weekday - 1]
         
@@ -75,29 +75,29 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     }
     
     /// Date in [short month name] [day] ie. `Apr 4` format
-    var shortMonthDayString: String {
+    public var shortMonthDayString: String {
         let month = Day.calendar.shortMonthSymbols[self.month - 1]
         return "\(month) \(day)"
     }
     
     /// Date in [short month name] [day] ie. `Apr 4, 2020` format
-    var shortMonthDayYearString: String {
+    public var shortMonthDayYearString: String {
         let month = Day.calendar.shortMonthSymbols[self.month - 1]
         return "\(month) \(day), \(year)"
     }
     
-    var shortMonthString: String {
+    public var shortMonthString: String {
         return "\(Day.calendar.shortMonthSymbols[self.month - 1])"
     }
     
     /// Date in [month day, year] format, ie. `April 5, 2020`
-    var fullFormattedString: String {
+    public var fullFormattedString: String {
         let month = Day.calendar.monthSymbols[self.month - 1]
         return "\(month) \(self.day), \(self.year)"
     }
     
     /// returns true if Day contains the date, represented as a `TimeInterval` in seconds since 1970 UTC epoch
-    func contains(date: Date, inTimeZone timeZone: TimeZone) -> Bool {
+    public func contains(date: Date, inTimeZone timeZone: TimeZone) -> Bool {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         guard let startDate = DateComponents(calendar: calendar, year: self.year, month: self.month, day: self.day).date,
@@ -115,7 +115,7 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
      - Parameter Day: day indexed from 1
      - Parameter Year: year as actualy year (ie. 2020)
      */
-    init?(month: Int, day: Int, year: Int) {
+    public init?(month: Int, day: Int, year: Int) {
         guard let date = Day.calendar.date(from: DateComponents(year: year, month: month, day: day)) else {
             return nil
         }
