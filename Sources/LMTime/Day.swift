@@ -1,13 +1,19 @@
 //
-//  LMDay.swift
+//  Day.swift
+//  CampsiteFinder
 //
-//  Created by Leko Murphy on 2/22/20.
-//  Copyright © 2020 Leko Murphy. All rights reserved.
+//  Created by Leko Murphy on 5/31/21.
 //
 
 import Foundation
 
 public struct Day: Codable, Comparable, Strideable, Hashable {
+    
+    public static let seconds: TimeInterval = 24 * 60 * 60
+    
+    /// Special case that corresponds to no particular day, but comes before all other days when using comparison operator.  other operators are not supported
+    public static let AnyDay = Day()
+    
     /// days are counted in integer intervals
     public typealias Stride = Int
     
@@ -15,29 +21,31 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     private static let calendar: Calendar = {
         var cal = Calendar.init(identifier: .gregorian)
         cal.locale = Locale.init(identifier: "en_US")
-        guard let timezone = TimeZone.init(identifier: "UTC") else { fatalError("WTF Apple, UTC timezone no longer exists") }
+        guard let timezone = TimeZone(identifier: "UTC") else { fatalError("WTF Apple, UTC timezone no longer exists") }
         cal.timeZone = timezone
         return cal
     }()
     
-    private let date: Date
-    
-    public var month: Int {
-        return Day.calendar.component(.month, from: date)
+    /// Date representing start of day in UTC timezone (underlying `TimeInterval` is seconds since 1970 epoch UTC)
+    public private(set) var date: Date {
+        didSet {
+            (self.month, self.day, self.year) = (Day.calendar.component(.month, from: date),
+                                                 Day.calendar.component(.day, from: date),
+                                                 Day.calendar.component(.year, from: date))
+        }
     }
     
-    public var day: Int {
-        return Day.calendar.component(.day, from: date)
-    }
-    
-    public var year: Int {
-        return Day.calendar.component(.year, from: date)
-    }
+    //Do Not Directly set these properties in this class, besides in initializer.  Setting date will update these
+    public private(set) var month: Int
+    public private(set) var day: Int
+    public private(set) var year: Int
         
-    /// Returns GTDay in user's local timezone
+    /// Returns Day in user's local timezone
     public static var today: Day {
         let todayDate = Date(timeIntervalSinceNow: 0)
-        return todayDate.day(in: Calendar.autoupdatingCurrent.timeZone)
+        let calendar = Calendar.autoupdatingCurrent
+        let (month, day, year) = (calendar.component(.month, from: todayDate), calendar.component(.day, from: todayDate), calendar.component(.year, from: todayDate))
+        return Day(month: month, day: day, year: year)!
     }
     
     /// Returns `TimeInterval` corresponding to seconds since UTC epoch of start of day
@@ -67,6 +75,7 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
         return "\(month)/\(day)"
     }
     
+    /// Date in "Wednesday, Jan 20" format
     public var weekdayDateString: String {
         let weekday = Day.calendar.dateComponents([.weekday], from: self.date).weekday!
         let weekdayString = Day.calendar.weekdaySymbols[weekday - 1]
@@ -109,7 +118,7 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     }
     
     /**
-     - Returns: GTDay if month, day, year map to a real day, else returns nil
+     - Returns: Day if month, day, year map to a real day, else returns nil
      
      - Parameter Month: month number from 1 - 12
      - Parameter Day: day indexed from 1
@@ -120,6 +129,9 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
             return nil
         }
         self.date = date
+        self.month = month
+        self.day = day
+        self.year = year
     }
     
     init?(fromString key: String) {
@@ -129,12 +141,22 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
         self.init(month: monthDayYear[0], day: monthDayYear[1], year: monthDayYear[2])
     }
     
+    /// only used to create `AnyDay` special Day which comes before all days and is only compatible with comparison operators
+    private init() {
+        self.date = Date()
+        self.month = 0
+        self.day = 0
+        self.year = 0
+    }
+    
     /**
-     - Returns: GTDay (lhs) advanced by rhs number of days.
+     - Returns: Day (lhs) advanced by rhs number of days.
      */
     public static func + (lhs: Day, rhs: Int) -> Day {
+        guard lhs != .AnyDay else { fatalError("operator is not compatible with AnyDay Day") }
+        
         let newDate = Day.calendar.date(byAdding: .day, value: rhs, to: lhs.date)!
-        let newDay = newDate.day(in: Day.calendar.timeZone)
+        let newDay = Day.utcDay(from: newDate)
         return Day(month: newDay.month, day: newDay.day, year: newDay.year)!
     }
     
@@ -162,6 +184,8 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     }
     
     public func distance(to other: Day) -> Int {
+        guard self != .AnyDay, other != .AnyDay else { fatalError("Distance(to: is not compatible with AnyDay Day") }
+        
         if self < other {
             return Day.calendar.dateComponents([.day], from: self.date, to: other.date).day!
         }
@@ -169,8 +193,14 @@ public struct Day: Codable, Comparable, Strideable, Hashable {
     }
     
     public func advanced(by n: Int) -> Day {
+        guard self != .AnyDay else { fatalError("Advanced(by: is not compatible with AnyDay Day") }
+        
         return self + n
     }
+    
+    public static func utcDay(from date: Date) -> Day {
+        let (month, day, year) = (Self.calendar.component(.month, from: date), Self.calendar.component(.day, from: date), Self.calendar.component(.year, from: date))
+        return Day(month: month, day: day, year: year)!
+    }
 }
-
 
